@@ -1,42 +1,95 @@
-# Import packages
-from dash import Dash, html, dash_table, dcc, callback, Output, Input
-import pandas as pd
+from dash import Dash, dcc, html, Input, Output
+import plotly.graph_objects as go
 import plotly.express as px
-import dash_design_kit as ddk
+import pandas as pd
 
-# Incorporate data
-df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
+app = Dash(__name__,
+        meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}])
 
-# Initialize the app
-app = Dash(__name__)
+app.title = "Dashboard"
+server = app.server
+app_color = {"graph_bg": "#082255", "graph_line": "#007ACE"}
 
-# App layout
-app.layout = ddk.App([
-    ddk.Header(ddk.Title('My First App with Data, Graph, and Controls')),
-    dcc.RadioItems(options=['pop', 'lifeExp', 'gdpPercap'],
-                    value='lifeExp',
-                    inline=True,
-                    id='my-ddk-radio-items-final'),
-    ddk.Row([
-        ddk.Card([
-            dash_table.DataTable(data=df.to_dict('records'), page_size=12, style_table={'overflowX': 'auto'})
-        ], width=50),
-        ddk.Card([
-            ddk.Graph(figure={}, id='graph-placeholder-ddk-final')
-        ], width=50),
+
+df = px.data.gapminder()
+countries = df['country'].unique()
+years = df['year'].unique()
+indicators = ['lifeExp','gdpPercap','pop']
+
+app.layout = html.Div([
+    html.Div([
+        html.H4('Visualisation de l\'espérance de vie ', className="app__header__title"),
+        html.Div([
+            dcc.Dropdown(
+                id="country",
+                options=countries,
+                value=countries[0],
+                clearable=False,
+                className="link-button-3")
+        ]),
+        dcc.Graph(id="lifeExpGraph")
     ]),
-
+    html.Div([
+        html.H4('Visualisation "Libre" ', className="app__header__title"),
+        html.Div([
+            dcc.Dropdown(
+                id="x",
+                options=indicators,
+                value=indicators[0],
+                clearable=False,
+                style={"width": "200px","display":"flex"},
+                className="link-button-3"),
+            dcc.Dropdown(
+                id="y",
+                options=indicators,
+                value=indicators[1],
+                clearable=False,
+                style={"width": "200px","display":"flex"},
+                className="link-button-3"),
+            dcc.Dropdown(
+                id="size",
+                options=indicators,
+                value=indicators[2],
+                clearable=False,
+                style={"width": "200px","display":"flex"},
+                className="link-button-3"),
+            dcc.Dropdown(
+                id="year",
+                options=years,
+                value=years[0],
+                clearable=False,
+                style={"width": "200px","display":"flex"},
+                className="link-button-3"),
+            dcc.Checklist(['xlog','ylog'],inline=True,id="check")
+        ]),
+        dcc.Graph(id="freeGraph")        
+    ])
 ])
 
-# Add controls to build the interaction
-@callback(
-    Output(component_id='graph-placeholder-ddk-final', component_property='figure'),
-    Input(component_id='my-ddk-radio-items-final', component_property='value')
+
+@app.callback(
+    Output("lifeExpGraph", "figure"), 
+    Input("country", "value")
 )
-def update_graph(col_chosen):
-    fig = px.histogram(df, x='continent', y=col_chosen, histfunc='avg')
+def display_lifeExp(country):
+    data = df[df['country']==country]
+    fig = px.line(data,x='year',y='lifeExp')
     return fig
 
-# Run the app
-if __name__ == '__main__':
-    app.run(debug=False)
+@app.callback(
+    Output("freeGraph","figure"),
+    Input("x","value"),
+    Input("y","value"),
+    Input("size","value"),
+    Input("year","value"),
+    Input("check","value")
+)
+def display_freeGraph(x,y,size,year,check):
+    data = df[df['year']==year]
+    print(check)
+    fig = px.scatter(data,x=x,y=y,size=size,color="continent",hover_name="country",size_max=60)
+    return fig
+
+if __name__ == "__main__":
+    app.run(jupyter_mode="jupyterlab",port=8081)
+
