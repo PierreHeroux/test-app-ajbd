@@ -74,6 +74,9 @@ app.layout = html.Div([
 def display_lifeExp(country):
     data = df[df['country']==country]
     fig = px.line(data,x='year',y='lifeExp')
+    f = open("./interaction.txt","w")
+    f.write(country)
+    f.close()
     return fig
 
 @app.callback(
