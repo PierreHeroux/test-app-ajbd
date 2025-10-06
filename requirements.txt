@@ -1,0 +1,4 @@
+dash==2.14.2
+dash_design_kit==0.0.1
+pandas==2.3.3
+plotly==6.3.0
